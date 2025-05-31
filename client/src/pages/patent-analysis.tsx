@@ -40,7 +40,7 @@ export default function PatentAnalysis() {
     queryKey: ["/api/analysis", currentAnalysisId],
     queryFn: () => currentAnalysisId ? patentApi.getAnalysisResult(currentAnalysisId) : null,
     enabled: !!currentAnalysisId,
-    refetchInterval: 3000
+    refetchInterval: currentAnalysisId ? 3000 : false
   });
 
   // Get selected patent for detail modal
