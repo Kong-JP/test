@@ -12,7 +12,6 @@ import { Search } from "lucide-react";
 import { insertAnalysisRequestSchema } from "@shared/schema";
 
 const analysisFormSchema = insertAnalysisRequestSchema.extend({
-  publicationDate: z.string().min(1, "공개일자를 입력해주세요"),
   analysisScope: z.object({
     composition: z.boolean(),
     microstructure: z.boolean(),
@@ -20,6 +19,8 @@ const analysisFormSchema = insertAnalysisRequestSchema.extend({
   }).refine(data => data.composition || data.microstructure || data.properties, {
     message: "최소 하나의 분석 범위를 선택해주세요"
   })
+}).omit({
+  publicationDate: true
 });
 
 type AnalysisFormData = z.infer<typeof analysisFormSchema>;
@@ -34,7 +35,6 @@ export function AnalysisForm({ onSubmit, isLoading = false }: AnalysisFormProps)
     resolver: zodResolver(analysisFormSchema),
     defaultValues: {
       targetPatentNumber: "US 9,708,683 B2",
-      publicationDate: "2017-07-18",
       minMatchRate: 80,
       analysisScope: {
         composition: true,
@@ -47,7 +47,7 @@ export function AnalysisForm({ onSubmit, isLoading = false }: AnalysisFormProps)
   const handleSubmit = (data: AnalysisFormData) => {
     const formattedData = {
       ...data,
-      publicationDate: new Date(data.publicationDate)
+      publicationDate: new Date("2017-07-18") // Default publication date for target patent
     };
     onSubmit(formattedData);
   };
@@ -78,23 +78,7 @@ export function AnalysisForm({ onSubmit, isLoading = false }: AnalysisFormProps)
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="publicationDate"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-sm font-medium text-gray-700">공개일자</FormLabel>
-                  <FormControl>
-                    <Input 
-                      type="date" 
-                      className="text-sm"
-                      {...field} 
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+
 
             <FormField
               control={form.control}

@@ -51,11 +51,7 @@ export default function PatentAnalysis() {
   });
 
   const handleAnalysisSubmit = (data: any) => {
-    const formattedData = {
-      ...data,
-      publicationDate: new Date(data.publicationDate)
-    };
-    createAnalysisMutation.mutate(formattedData);
+    createAnalysisMutation.mutate(data);
   };
 
   const handleShowDetails = (patentId: number) => {
