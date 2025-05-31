@@ -45,6 +45,10 @@ export const insertAnalysisRequestSchema = createInsertSchema(analysisRequests).
   id: true,
   status: true,
   createdAt: true,
+}).extend({
+  publicationDate: z.union([z.string(), z.date()]).transform((val) => 
+    typeof val === 'string' ? new Date(val) : val
+  )
 });
 
 export const insertAnalysisResultSchema = createInsertSchema(analysisResults).omit({

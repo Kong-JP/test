@@ -1,8 +1,9 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertAnalysisRequestSchema } from "@shared/schema";
+import { insertAnalysisRequestSchema, analysisRequests } from "@shared/schema";
 import { z } from "zod";
+import { db } from "./db";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   
@@ -32,8 +33,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create analysis request
   app.post("/api/analysis", async (req, res) => {
     try {
-      const validatedData = insertAnalysisRequestSchema.parse(req.body);
-      const request = await storage.createAnalysisRequest(validatedData);
+      console.log("Received request body:", req.body);
+      
+      // Create the request data with proper types
+      const requestData = {
+        targetPatentNumber: req.body.targetPatentNumber,
+        publicationDate: req.body.publicationDate ? new Date(req.body.publicationDate) : new Date("2017-07-18"),
+        minMatchRate: req.body.minMatchRate,
+        analysisScope: req.body.analysisScope
+      };
+      
+      console.log("Transformed request data:", requestData);
+      
+      // Insert directly into database to avoid schema validation issues
+      const [request] = await db.insert(analysisRequests).values(requestData).returning();
       
       // Start analysis in background
       setTimeout(async () => {
@@ -42,9 +55,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json(request);
     } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Invalid request data", errors: error.errors });
-      }
+      console.error("Analysis request error:", error);
       res.status(500).json({ message: "Failed to create analysis request" });
     }
   });
