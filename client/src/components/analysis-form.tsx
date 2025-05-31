@@ -25,7 +25,7 @@ const analysisFormSchema = insertAnalysisRequestSchema.extend({
 type AnalysisFormData = z.infer<typeof analysisFormSchema>;
 
 interface AnalysisFormProps {
-  onSubmit: (data: AnalysisFormData) => void;
+  onSubmit: (data: any) => void;
   isLoading?: boolean;
 }
 

@@ -186,8 +186,14 @@ export class MemStorage implements IStorage {
   async createAnalysisResult(insertResult: InsertAnalysisResult): Promise<AnalysisResult> {
     const id = this.currentAnalysisResultId++;
     const result: AnalysisResult = { 
-      ...insertResult, 
       id,
+      targetPatentId: insertResult.targetPatentId!,
+      priorArtPatentId: insertResult.priorArtPatentId!,
+      overallSimilarity: insertResult.overallSimilarity,
+      compositionSimilarity: insertResult.compositionSimilarity,
+      microstructureSimilarity: insertResult.microstructureSimilarity,
+      propertiesSimilarity: insertResult.propertiesSimilarity,
+      rank: insertResult.rank!,
       createdAt: new Date()
     };
     this.analysisResults.set(id, result);

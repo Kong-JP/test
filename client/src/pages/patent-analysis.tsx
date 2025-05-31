@@ -4,7 +4,7 @@ import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { AnalysisForm } from "@/components/analysis-form";
 import { AnalysisProgress } from "@/components/analysis-progress";
-import { ResultsTable } from "@/components/results-table";
+import { DetailedOutputTable } from "@/components/detailed-output-table";
 import { DetailModal } from "@/components/detail-modal";
 import { patentApi } from "@/lib/patent-api";
 import type { InsertAnalysisRequest, Patent, AnalysisResult } from "@shared/schema";
@@ -36,14 +36,11 @@ export default function PatentAnalysis() {
   });
 
   // Get analysis results
-  const { data: analysisData, refetchInterval } = useQuery({
+  const { data: analysisData } = useQuery({
     queryKey: ["/api/analysis", currentAnalysisId],
     queryFn: () => currentAnalysisId ? patentApi.getAnalysisResult(currentAnalysisId) : null,
     enabled: !!currentAnalysisId,
-    refetchInterval: (data) => {
-      // Stop polling when analysis is completed
-      return data?.status === "completed" ? false : 3000;
-    }
+    refetchInterval: 3000
   });
 
   // Get selected patent for detail modal
@@ -53,8 +50,12 @@ export default function PatentAnalysis() {
     enabled: false // We'll get this from the analysis results
   });
 
-  const handleAnalysisSubmit = (data: InsertAnalysisRequest) => {
-    createAnalysisMutation.mutate(data);
+  const handleAnalysisSubmit = (data: any) => {
+    const formattedData = {
+      ...data,
+      publicationDate: new Date(data.publicationDate)
+    };
+    createAnalysisMutation.mutate(formattedData);
   };
 
   const handleShowDetails = (patentId: number) => {
@@ -135,11 +136,9 @@ export default function PatentAnalysis() {
           
           {/* Right Panel - Results */}
           <div className="lg:col-span-3">
-            <ResultsTable 
+            <DetailedOutputTable 
               analysisData={analysisData || null}
-              onShowDetails={handleShowDetails}
               onExportResults={handleExportResults}
-              onGenerateReport={handleGenerateReport}
             />
           </div>
         </div>
