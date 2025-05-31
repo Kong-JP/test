@@ -10,6 +10,8 @@ import {
   type InsertAnalysisRequest,
   type PatentAnalysisResponse
 } from "@shared/schema";
+import { db } from "./db";
+import { eq } from "drizzle-orm";
 
 export interface IStorage {
   // Patent operations
@@ -32,19 +34,14 @@ export interface IStorage {
   getPatentAnalysisResponse(requestId: number): Promise<PatentAnalysisResponse | undefined>;
 }
 
-export class MemStorage implements IStorage {
-  private patents: Map<number, Patent> = new Map();
-  private analysisResults: Map<number, AnalysisResult> = new Map();
-  private analysisRequests: Map<number, AnalysisRequest> = new Map();
-  private currentPatentId = 1;
-  private currentAnalysisResultId = 1;
-  private currentAnalysisRequestId = 1;
+export class DatabaseStorage implements IStorage {
+  async initializeSampleData() {
+    // Check if sample data already exists
+    const existingPatents = await db.select().from(patents).limit(1);
+    if (existingPatents.length > 0) {
+      return; // Sample data already exists
+    }
 
-  constructor() {
-    this.initializeSampleData();
-  }
-
-  private initializeSampleData() {
     // Sample patents for demonstration
     const samplePatents: InsertPatent[] = [
       {
@@ -133,88 +130,85 @@ export class MemStorage implements IStorage {
       }
     ];
 
-    samplePatents.forEach(patent => {
-      this.createPatent(patent);
-    });
+    for (const patent of samplePatents) {
+      await this.createPatent(patent);
+    }
   }
 
+  constructor() {
+    this.initializeSampleData();
+  }
+
+
+
   async getPatent(id: number): Promise<Patent | undefined> {
-    return this.patents.get(id);
+    const [patent] = await db.select().from(patents).where(eq(patents.id, id));
+    return patent || undefined;
   }
 
   async getPatentByNumber(patentNumber: string): Promise<Patent | undefined> {
-    return Array.from(this.patents.values()).find(
-      patent => patent.patentNumber === patentNumber
-    );
+    const [patent] = await db.select().from(patents).where(eq(patents.patentNumber, patentNumber));
+    return patent || undefined;
   }
 
   async createPatent(insertPatent: InsertPatent): Promise<Patent> {
-    const id = this.currentPatentId++;
-    const patent: Patent = { ...insertPatent, id };
-    this.patents.set(id, patent);
+    const [patent] = await db
+      .insert(patents)
+      .values(insertPatent)
+      .returning();
     return patent;
   }
 
   async getAllPatents(): Promise<Patent[]> {
-    return Array.from(this.patents.values());
+    return await db.select().from(patents);
   }
 
   async createAnalysisRequest(insertRequest: InsertAnalysisRequest): Promise<AnalysisRequest> {
-    const id = this.currentAnalysisRequestId++;
-    const request: AnalysisRequest = { 
-      ...insertRequest, 
-      id, 
-      status: "pending",
-      createdAt: new Date()
-    };
-    this.analysisRequests.set(id, request);
+    const [request] = await db
+      .insert(analysisRequests)
+      .values(insertRequest)
+      .returning();
     return request;
   }
 
   async getAnalysisRequest(id: number): Promise<AnalysisRequest | undefined> {
-    return this.analysisRequests.get(id);
+    const [request] = await db.select().from(analysisRequests).where(eq(analysisRequests.id, id));
+    return request || undefined;
   }
 
   async updateAnalysisRequestStatus(id: number, status: string): Promise<void> {
-    const request = this.analysisRequests.get(id);
-    if (request) {
-      request.status = status;
-      this.analysisRequests.set(id, request);
-    }
+    await db
+      .update(analysisRequests)
+      .set({ status })
+      .where(eq(analysisRequests.id, id));
   }
 
   async createAnalysisResult(insertResult: InsertAnalysisResult): Promise<AnalysisResult> {
-    const id = this.currentAnalysisResultId++;
-    const result: AnalysisResult = { 
-      id,
-      targetPatentId: insertResult.targetPatentId!,
-      priorArtPatentId: insertResult.priorArtPatentId!,
-      overallSimilarity: insertResult.overallSimilarity,
-      compositionSimilarity: insertResult.compositionSimilarity,
-      microstructureSimilarity: insertResult.microstructureSimilarity,
-      propertiesSimilarity: insertResult.propertiesSimilarity,
-      rank: insertResult.rank!,
-      createdAt: new Date()
-    };
-    this.analysisResults.set(id, result);
+    const [result] = await db
+      .insert(analysisResults)
+      .values(insertResult)
+      .returning();
     return result;
   }
 
   async getAnalysisResultsByRequest(requestId: number): Promise<Array<AnalysisResult & { priorArtPatent: Patent }>> {
-    const results = Array.from(this.analysisResults.values())
-      .filter(result => result.targetPatentId === requestId);
+    const results = await db
+      .select({
+        analysisResult: analysisResults,
+        priorArtPatent: patents
+      })
+      .from(analysisResults)
+      .innerJoin(patents, eq(analysisResults.priorArtPatentId, patents.id))
+      .where(eq(analysisResults.targetPatentId, requestId));
     
-    return results.map(result => {
-      const priorArtPatent = this.patents.get(result.priorArtPatentId);
-      return {
-        ...result,
-        priorArtPatent: priorArtPatent!
-      };
-    });
+    return results.map(row => ({
+      ...row.analysisResult,
+      priorArtPatent: row.priorArtPatent
+    }));
   }
 
   async searchPriorArt(targetPatent: Patent, minMatchRate: number): Promise<Patent[]> {
-    const allPatents = Array.from(this.patents.values());
+    const allPatents = await db.select().from(patents);
     
     return allPatents.filter(patent => 
       patent.id !== targetPatent.id && 
@@ -344,4 +338,4 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
