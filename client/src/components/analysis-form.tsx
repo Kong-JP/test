@@ -55,7 +55,7 @@ export function AnalysisForm({ onSubmit, isLoading = false }: AnalysisFormProps)
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-lg font-semibold text-gray-900">특허 분석 설정</CardTitle>
+        <CardTitle className="text-lg font-semibold text-gray-900">특허 정보 입력</CardTitle>
       </CardHeader>
       <CardContent>
         <Form {...form}>
