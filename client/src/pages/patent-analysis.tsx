@@ -102,7 +102,7 @@ export default function PatentAnalysis() {
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
               <Scale className="text-blue-600 text-2xl mr-3" />
-              <h1 className="text-xl font-semibold text-gray-900">특허 선행기술 분석 시스템입니다.</h1>
+              <h1 className="text-xl font-semibold text-gray-900">특허 선행기술 분석 시스템</h1>
             </div>
             <div className="flex items-center space-x-4">
               <button className="text-gray-500 hover:text-gray-700">
