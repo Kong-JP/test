@@ -1,4 +1,4 @@
-import { useState } from "react";
+import * as React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -18,7 +18,8 @@ const analysisFormSchema = insertAnalysisRequestSchema.extend({
     properties: z.boolean()
   }).refine(data => data.composition || data.microstructure || data.properties, {
     message: "최소 하나의 분석 범위를 선택해주세요"
-  })
+  }),
+  pdfFile: z.instanceof(File).optional()
 }).omit({
   publicationDate: true
 });
@@ -26,7 +27,7 @@ const analysisFormSchema = insertAnalysisRequestSchema.extend({
 type AnalysisFormData = z.infer<typeof analysisFormSchema>;
 
 interface AnalysisFormProps {
-  onSubmit: (data: any) => void;
+  onSubmit: (data: AnalysisFormData) => void;
   isLoading?: boolean;
 }
 
@@ -55,7 +56,7 @@ export function AnalysisForm({ onSubmit, isLoading = false }: AnalysisFormProps)
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-lg font-semibold text-gray-900">특허 정보 입력</CardTitle>
+        <CardTitle className="text-lg font-semibold text-gray-900">특허 분석 설정</CardTitle>
       </CardHeader>
       <CardContent>
         <Form {...form}>
@@ -78,7 +79,32 @@ export function AnalysisForm({ onSubmit, isLoading = false }: AnalysisFormProps)
               )}
             />
 
-
+            <FormField
+              control={form.control}
+              name="pdfFile"
+              render={({ field: { onChange, value, ...field } }) => (
+                <FormItem>
+                  <FormLabel className="text-sm font-medium text-gray-700">특허 PDF 파일</FormLabel>
+                  <FormControl>
+                    <div className="flex items-center space-x-2">
+                      <Input
+                        type="file"
+                        accept=".pdf"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            onChange(file);
+                          }
+                        }}
+                        className="text-sm file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                        {...field}
+                      />
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <FormField
               control={form.control}
