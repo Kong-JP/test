@@ -13,6 +13,7 @@ export const patents = pgTable("patents", {
   abstract: text("abstract").notNull(),
   claims: text("claims").notNull(),
   country: text("country").notNull(),
+  pdfPath: text("pdf_path"), // Optional path to uploaded PDF file
 });
 
 export const analysisResults = pgTable("analysis_results", {
@@ -35,20 +36,21 @@ export const analysisRequests = pgTable("analysis_requests", {
   analysisScope: jsonb("analysis_scope").notNull(), // {composition: boolean, microstructure: boolean, properties: boolean}
   status: text("status").notNull().default("pending"), // pending, in-progress, completed, failed
   createdAt: timestamp("created_at").defaultNow(),
+  competitorPatentPdf: jsonb("competitor_patent_pdf"), // PDF 파일 업로드를 위한 필드
 });
 
-export const insertPatentSchema = createInsertSchema(patents).omit({
-  id: true,
-});
+export const insertPatentSchema = createInsertSchema(patents);
 
-export const insertAnalysisRequestSchema = createInsertSchema(analysisRequests).omit({
-  id: true,
-  status: true,
-  createdAt: true,
-}).extend({
-  publicationDate: z.union([z.string(), z.date()]).transform((val) => 
-    typeof val === 'string' ? new Date(val) : val
-  )
+export const insertAnalysisRequestSchema = z.object({
+  targetPatentNumber: z.string().min(1, "특허번호를 입력해주세요"),
+  minMatchRate: z.number().min(0).max(100),
+  publicationDate: z.date(),
+  analysisScope: z.object({
+    composition: z.boolean(),
+    microstructure: z.boolean(),
+    properties: z.boolean()
+  }),
+  competitorPatentPdf: z.any().optional() // PDF 파일 업로드를 위한 필드
 });
 
 export const insertAnalysisResultSchema = createInsertSchema(analysisResults).omit({
@@ -57,7 +59,7 @@ export const insertAnalysisResultSchema = createInsertSchema(analysisResults).om
 });
 
 export type Patent = typeof patents.$inferSelect;
-export type InsertPatent = z.infer<typeof insertPatentSchema>;
+export type InsertPatent = typeof patents.$inferInsert;
 export type AnalysisResult = typeof analysisResults.$inferSelect;
 export type InsertAnalysisResult = z.infer<typeof insertAnalysisResultSchema>;
 export type AnalysisRequest = typeof analysisRequests.$inferSelect;
