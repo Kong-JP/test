@@ -76,7 +76,7 @@ export function DetailedOutputTable({ analysisData, onExportResults }: DetailedO
     <Card>
       <CardHeader>
         <div className="flex justify-between items-center">
-          <CardTitle className="text-lg font-semibold text-gray-900">Output</CardTitle>
+          <CardTitle className="text-lg font-semibold text-gray-900">분석 결과</CardTitle>
           <div className="flex space-x-2">
             <Button 
               variant="outline" 
