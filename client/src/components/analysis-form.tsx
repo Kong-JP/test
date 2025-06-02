@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Search } from "lucide-react";
 import { insertAnalysisRequestSchema } from "@shared/schema";
+import { toast } from "@/components/ui/use-toast";
 
 const analysisFormSchema = insertAnalysisRequestSchema.extend({
   analysisScope: z.object({
@@ -31,6 +32,8 @@ interface AnalysisFormProps {
 }
 
 export function AnalysisForm({ onSubmit, isLoading = false }: AnalysisFormProps) {
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
   const form = useForm<AnalysisFormData>({
     resolver: zodResolver(analysisFormSchema),
     defaultValues: {
@@ -44,12 +47,47 @@ export function AnalysisForm({ onSubmit, isLoading = false }: AnalysisFormProps)
     }
   });
 
-  const handleSubmit = (data: AnalysisFormData) => {
-    const formattedData = {
-      ...data,
-      publicationDate: new Date("2017-07-18") // Default publication date for target patent
-    };
-    onSubmit(formattedData);
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file && file.type === "application/pdf") {
+      setSelectedFile(file);
+    } else {
+      toast({
+        title: "오류",
+        description: "PDF 파일만 업로드할 수 있습니다.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleSubmit = async (data: AnalysisFormData) => {
+    try {
+      // 먼저 분석 요청을 제출
+      const analysisResponse = await onSubmit(data);
+
+      // 파일이 선택되었다면 업로드
+      if (selectedFile && analysisResponse.id) {
+        const formData = new FormData();
+        formData.append("pdf", selectedFile);
+        formData.append("patentId", analysisResponse.id.toString());
+
+        const response = await fetch("/api/upload-pdf", {
+          method: "POST",
+          body: formData
+        });
+
+        if (!response.ok) {
+          throw new Error("파일 업로드에 실패했습니다.");
+        }
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      toast({
+        title: "오류",
+        description: "분석 요청 또는 파일 업로드에 실패했습니다.",
+        variant: "destructive"
+      });
+    }
   };
 
   return (
@@ -77,8 +115,6 @@ export function AnalysisForm({ onSubmit, isLoading = false }: AnalysisFormProps)
                 </FormItem>
               )}
             />
-
-
 
             <FormField
               control={form.control}
@@ -162,13 +198,25 @@ export function AnalysisForm({ onSubmit, isLoading = false }: AnalysisFormProps)
               )}
             </div>
 
+            <FormItem>
+              <FormLabel className="text-sm font-medium text-gray-700">PDF 파일 업로드</FormLabel>
+              <FormControl>
+                <Input 
+                  type="file"
+                  accept="application/pdf"
+                  onChange={handleFileChange}
+                  className="text-sm"
+                />
+              </FormControl>
+              <p className="text-sm text-gray-500">PDF 파일만 업로드할 수 있습니다.</p>
+            </FormItem>
+
             <Button 
               type="submit" 
-              className="w-full mt-6 bg-blue-600 hover:bg-blue-700"
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white"
               disabled={isLoading}
             >
-              <Search className="w-4 h-4 mr-2" />
-              {isLoading ? "분석 중..." : "선행기술 분석 시작"}
+              {isLoading ? "분석 중..." : "분석 시작"}
             </Button>
           </form>
         </Form>

@@ -8,7 +8,8 @@ import {
   type InsertAnalysisResult,
   type AnalysisRequest,
   type InsertAnalysisRequest,
-  type PatentAnalysisResponse
+  type PatentAnalysisResponse,
+  pdfFiles
 } from "@shared/schema";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
@@ -32,6 +33,11 @@ export interface IStorage {
   // Complex queries
   searchPriorArt(targetPatent: Patent, minMatchRate: number): Promise<Patent[]>;
   getPatentAnalysisResponse(requestId: number): Promise<PatentAnalysisResponse | undefined>;
+
+  // PDF file operations
+  createPdfFile(file: InsertPdfFile): Promise<typeof pdfFiles.$inferSelect>;
+  getPdfFilesByPatentId(patentId: number): Promise<Array<typeof pdfFiles.$inferSelect>>;
+  deletePdfFile(id: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -138,8 +144,6 @@ export class DatabaseStorage implements IStorage {
   constructor() {
     this.initializeSampleData();
   }
-
-
 
   async getPatent(id: number): Promise<Patent | undefined> {
     const [patent] = await db.select().from(patents).where(eq(patents.id, id));
@@ -335,6 +339,19 @@ export class DatabaseStorage implements IStorage {
       totalCount: results.length,
       status: request.status
     };
+  }
+
+  async createPdfFile(file: InsertPdfFile): Promise<typeof pdfFiles.$inferSelect> {
+    const [result] = await db.insert(pdfFiles).values(file).returning();
+    return result;
+  }
+
+  async getPdfFilesByPatentId(patentId: number): Promise<Array<typeof pdfFiles.$inferSelect>> {
+    return db.select().from(pdfFiles).where(eq(pdfFiles.patentId, patentId));
+  }
+
+  async deletePdfFile(id: number): Promise<void> {
+    await db.delete(pdfFiles).where(eq(pdfFiles.id, id));
   }
 }
 

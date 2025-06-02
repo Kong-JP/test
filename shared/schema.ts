@@ -1,4 +1,4 @@
-import { pgTable, text, serial, real, timestamp, boolean, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, real, timestamp, boolean, jsonb, integer } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -37,6 +37,16 @@ export const analysisRequests = pgTable("analysis_requests", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const pdfFiles = pgTable("pdf_files", {
+  id: serial("id").primaryKey(),
+  filename: text("filename").notNull(),
+  originalName: text("original_name").notNull(),
+  path: text("path").notNull(),
+  size: integer("size").notNull(),
+  uploadedAt: timestamp("uploaded_at").defaultNow(),
+  patentId: serial("patent_id").references(() => patents.id),
+});
+
 export const insertPatentSchema = createInsertSchema(patents).omit({
   id: true,
 });
@@ -56,12 +66,18 @@ export const insertAnalysisResultSchema = createInsertSchema(analysisResults).om
   createdAt: true,
 });
 
+export const insertPdfFileSchema = createInsertSchema(pdfFiles).omit({
+  id: true,
+  uploadedAt: true,
+});
+
 export type Patent = typeof patents.$inferSelect;
 export type InsertPatent = z.infer<typeof insertPatentSchema>;
 export type AnalysisResult = typeof analysisResults.$inferSelect;
 export type InsertAnalysisResult = z.infer<typeof insertAnalysisResultSchema>;
 export type AnalysisRequest = typeof analysisRequests.$inferSelect;
 export type InsertAnalysisRequest = z.infer<typeof insertAnalysisRequestSchema>;
+export type InsertPdfFile = z.infer<typeof insertPdfFileSchema>;
 
 // Additional types for API responses
 export type PatentAnalysisResponse = {

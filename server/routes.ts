@@ -4,6 +4,25 @@ import { storage } from "./storage";
 import { insertAnalysisRequestSchema, analysisRequests } from "@shared/schema";
 import { z } from "zod";
 import { db } from "./db";
+import multer from "multer";
+import path from "path";
+
+// 파일 업로드를 위한 multer 설정
+const upload = multer({
+  storage: multer.diskStorage({
+    destination: "./uploads",
+    filename: (req, file, cb) => {
+      cb(null, `${Date.now()}-${file.originalname}`);
+    }
+  }),
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype === "application/pdf") {
+      cb(null, true);
+    } else {
+      cb(new Error("PDF 파일만 업로드 가능합니다."));
+    }
+  }
+});
 
 export async function registerRoutes(app: Express): Promise<Server> {
   
@@ -89,6 +108,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ status: request.status });
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch analysis status" });
+    }
+  });
+
+  // PDF 파일 업로드 엔드포인트
+  app.post("/api/upload-pdf", upload.single("pdf"), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "파일이 업로드되지 않았습니다." });
+      }
+
+      const patentId = parseInt(req.body.patentId);
+      if (!patentId) {
+        return res.status(400).json({ message: "특허 ID가 필요합니다." });
+      }
+
+      // 파일 정보를 데이터베이스에 저장
+      const fileInfo = {
+        filename: req.file.filename,
+        originalName: req.file.originalname,
+        path: req.file.path,
+        size: req.file.size,
+        patentId: patentId
+      };
+
+      const savedFile = await storage.createPdfFile(fileInfo);
+
+      res.json({ 
+        message: "파일이 성공적으로 업로드되었습니다.",
+        file: savedFile 
+      });
+    } catch (error) {
+      console.error("파일 업로드 에러:", error);
+      res.status(500).json({ message: "파일 업로드에 실패했습니다." });
+    }
+  });
+
+  // PDF 파일 조회 엔드포인트
+  app.get("/api/patents/:patentId/pdf-files", async (req, res) => {
+    try {
+      const patentId = parseInt(req.params.patentId);
+      const files = await storage.getPdfFilesByPatentId(patentId);
+      res.json(files);
+    } catch (error) {
+      console.error("PDF 파일 조회 에러:", error);
+      res.status(500).json({ message: "PDF 파일 조회에 실패했습니다." });
     }
   });
 

@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { X } from "lucide-react";
 import type { Patent, AnalysisResult } from "@shared/schema";
+import { PdfViewer } from "./pdf-viewer";
 
 interface DetailModalProps {
   isOpen: boolean;
@@ -93,6 +94,9 @@ export function DetailModal({
                   </p>
                 </div>
               </div>
+              <div className="mt-4">
+                <PdfViewer patentId={targetPatent.id} />
+              </div>
             </div>
             
             {/* Prior Art Patent */}
@@ -121,6 +125,9 @@ export function DetailModal({
                     {formatProperties(priorArtPatent.properties)}
                   </p>
                 </div>
+              </div>
+              <div className="mt-4">
+                <PdfViewer patentId={priorArtPatent.id} />
               </div>
             </div>
           </div>
