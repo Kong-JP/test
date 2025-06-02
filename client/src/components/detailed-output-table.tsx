@@ -2,7 +2,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Download, FileText } from "lucide-react";
 import type { PatentAnalysisResponse } from "@shared/schema";
-import { toast } from "@/components/ui/use-toast";
 
 interface DetailedOutputTableProps {
   analysisData: PatentAnalysisResponse | null;
@@ -73,46 +72,6 @@ export function DetailedOutputTable({ analysisData, onExportResults }: DetailedO
   const microstructureProperties = ["미세 조직 부피분율 (ρ, 면적%)", "결정입자크기 (에테라이트, 오스테나이트)", "석출물", "편석", "비금속개재물"];
   const mechanicalProperties = ["항복강도 (YS)", "인장강도 (TS)", "총 연신율 (T_EL)", "균일 연신율(U_EL)", "굽힘성", "HRB강도", "3점 굽힘강도", "HER(R)", "수소침윤저항강도", "용접성 (열영향부 LME 등)", "인쇄성", "도료덮음성", "도금성 등급"];
 
-  const handlePdfSave = async () => {
-    try {
-      // 분석 데이터를 PDF 형식으로 변환
-      const response = await fetch('/api/generate-pdf', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(analysisData),
-      });
-
-      if (!response.ok) {
-        throw new Error('PDF 생성에 실패했습니다.');
-      }
-
-      // PDF 파일 다운로드
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `분석결과_${new Date().toISOString()}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-
-      toast({
-        title: "PDF 저장 완료",
-        description: "분석 결과가 PDF 파일로 저장되었습니다.",
-      });
-    } catch (error) {
-      console.error('PDF 저장 에러:', error);
-      toast({
-        title: "PDF 저장 실패",
-        description: "PDF 파일 생성 중 오류가 발생했습니다.",
-        variant: "destructive",
-      });
-    }
-  };
-
   return (
     <Card>
       <CardHeader>
@@ -131,7 +90,6 @@ export function DetailedOutputTable({ analysisData, onExportResults }: DetailedO
             <Button 
               size="sm" 
               className="bg-blue-600 hover:bg-blue-700 text-white"
-              onClick={handlePdfSave}
             >
               <FileText className="w-4 h-4 mr-2" />
               PDF 저장
